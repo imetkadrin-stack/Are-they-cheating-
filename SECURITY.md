@@ -4,12 +4,12 @@ A trusted iCloud device on the account was removed and replaced with (***)-***-*
 
 ## Immediate actions (do these now)
 
-1. Do NOT click any links in suspicious messages. Go directly to https://appleid.apple.com to manage your Apple ID.
+1. Do NOT click any links in suspicious messages. Go directly to https://appleid.apple.com to manage your Apple ID (you can also visit https://www.icloud.com/rest if needed).
 2. Change your Apple ID password now to a strong, unique password that has NOT been used on any other site.
 3. Sign out and remove unknown devices from your Apple ID:
    - On iPhone/iPad: Settings > [your name] > Devices, select the device and choose Remove from Account.
    - On Mac: System Settings > Apple ID > Devices.
-   - Or: https://appleid.apple.com > Devices.
+   - Or: https://appleid.apple.com > Devices (or https://www.icloud.com/rest > Devices).
 4. Enable or verify Two‑Factor Authentication (Password & Security) for your Apple ID.
 5. Review trusted phone numbers and recovery information; remove any unfamiliar numbers or email addresses.
 6. Revoke app‑specific passwords and sign out third‑party apps that use your Apple ID.
