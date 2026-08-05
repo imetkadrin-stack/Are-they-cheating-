@@ -1,4 +1,4 @@
-# SECURITY NOTICE: iCloud trusted device changed
+# iCloud Security
 
 A trusted iCloud device on the account was removed and replaced with (***)-***-**06. If you did not make this change, treat this as a potential account compromise and follow the steps below immediately.
 
@@ -21,8 +21,8 @@ A trusted iCloud device on the account was removed and replaced with (***)-***-*
 
 ## Notes and privacy
 
-- This repository records the alert for visibility. Do not post full personal data (full phone numbers, emails, or account identifiers) in public issues or commits unless necessary. The phone number is redacted/formatted here as provided.
-- If you want me to open a private issue, create a PRIVATE discussion, or contact repository admins, tell me which and I can draft or create it.
+- This repository records the alert for visibility. Do not publish full personal data (full phone numbers, emails, or account identifiers) in public issues or commits unless necessary. The phone number is preserved here as provided.
+- If you want me to open a private issue, create a private discussion, or contact repository admins, tell me which and I can draft or create it.
 
 ## If you DID make the change
 
