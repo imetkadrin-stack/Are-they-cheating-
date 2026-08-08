@@ -1,0 +1,29 @@
+name: Archive Repository
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cursor/fix-errors-readme-3b3b"
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: "cursor/fix-errors-readme-3b3b"
+          fetch-depth: 0
+
+      - name: Create complete ZIP
+        run: |
+          zip -r blackeye.zip . -x ".git/*"
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackeye-complete
+          path: blackeye.zip
+          retention-days: 30
