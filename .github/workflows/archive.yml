@@ -25,4 +25,4 @@ jobs:
         with:
         name: ericksonathome-complete
         path: ericksonathome.zip
-          retention-days: 30
+        retention-days: 30
