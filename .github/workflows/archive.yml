@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - "cursor/fix-errors-readme-3b3b"
+      - main
 
 jobs:
   archive:
@@ -14,16 +14,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: "cursor/fix-errors-readme-3b3b"
           fetch-depth: 0
 
       - name: Create complete ZIP
         run: |
-          zip -r blackeye.zip . -x ".git/*"
+          zip -r ericksonathome.zip . -x ".git/*"
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: blackeye-complete
-          path: blackeye.zip
+        name: ericksonathome-complete
+        path: ericksonathome.zip
           retention-days: 30
