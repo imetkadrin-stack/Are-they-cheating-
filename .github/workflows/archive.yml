@@ -1,29 +1,36 @@
 name: Archive Repository
 
+# This workflow creates a ZIP backup of the repository and uploads it as an artifact.
 on:
+  # Allow running manually from the Actions tab
   workflow_dispatch:
+
+  # Also run automatically whenever code is pushed to main
   push:
     branches:
       - main
 
 jobs:
   archive:
+    name: Build and upload repository archive
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          # Keep this on main to match your current setup
           ref: main
+          # Pull full history
           fetch-depth: 0
 
       - name: Create complete ZIP
         run: |
           zip -r ericksonathome.zip . -x ".git/*"
 
-      - name: Upload ZIP
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
-        with: 
+        with:
           name: ericksonathome-complete
           path: ericksonathome.zip
           retention-days: 30

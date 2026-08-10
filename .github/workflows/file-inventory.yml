@@ -1,0 +1,36 @@
+name: Archive File Inventory
+
+# This workflow creates a readable list of files in the repository
+# and uploads that list as an artifact.
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+jobs:
+  file_inventory:
+    name: Generate and upload file list
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create file list
+        run: |
+          find . -type f \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' \
+            | sort > file-list.txt
+
+      - name: Upload file list artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ericksonathome-file-list
+          path: file-list.txt
+          retention-days: 30
