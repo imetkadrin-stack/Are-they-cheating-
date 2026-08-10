@@ -17,9 +17,93 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y wget python3-pip
+          pip3 install markdown
+
+      - name: Download external images
+        run: |
+          mkdir -p images
+
+          # Social badges
+          wget -q "https://img.shields.io/static/v1?message=LinkedIn&logo=linkedin&label=&color=0077B5&logoColor=white&labelColor=&style=for-the-badge" -O images/badge-linkedin.svg
+          wget -q "https://img.shields.io/static/v1?message=Twitter&logo=twitter&label=&color=1DA1F2&logoColor=white&labelColor=&style=for-the-badge" -O images/badge-twitter.svg
+          wget -q "https://img.shields.io/static/v1?message=Instagram&logo=instagram&label=&color=E4405F&logoColor=white&labelColor=&style=for-the-badge" -O images/badge-instagram.svg
+
+          # Devicon tool logos
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain-wordmark.svg" -O images/firebase.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg" -O images/aws.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sketch/sketch-original.svg" -O images/sketch.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" -O images/react.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-original.svg" -O images/android.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/arduino/arduino-original.svg" -O images/arduino.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/digitalocean/digitalocean-original.svg" -O images/digitalocean.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg" -O images/php.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" -O images/python.svg
+          wget -q "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/yarn/yarn-original.svg" -O images/yarn.svg
+
+          # GitHub streak stats graph
+          wget -q "https://streak-stats.demolab.com?user=EricksonAtHome&locale=en&mode=daily&theme=dark&hide_border=false&border_radius=5&order=3" -O images/streak-stats.svg
+
+      - name: Convert README to HTML with local images
+        run: |
+          python3 - <<'EOF'
+          import re
+
+          with open("README.md", "r") as f:
+              content = f.read()
+
+          # Replace external image URLs with local paths
+          replacements = {
+              "https://img.shields.io/static/v1?message=LinkedIn&logo=linkedin&label=&color=0077B5&logoColor=white&labelColor=&style=for-the-badge": "images/badge-linkedin.svg",
+              "https://img.shields.io/static/v1?message=Twitter&logo=twitter&label=&color=1DA1F2&logoColor=white&labelColor=&style=for-the-badge": "images/badge-twitter.svg",
+              "https://img.shields.io/static/v1?message=Instagram&logo=instagram&label=&color=E4405F&logoColor=white&labelColor=&style=for-the-badge": "images/badge-instagram.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain-wordmark.svg": "images/firebase.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg": "images/aws.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sketch/sketch-original.svg": "images/sketch.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg": "images/react.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-original.svg": "images/android.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/arduino/arduino-original.svg": "images/arduino.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/digitalocean/digitalocean-original.svg": "images/digitalocean.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg": "images/php.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg": "images/python.svg",
+              "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/yarn/yarn-original.svg": "images/yarn.svg",
+              "https://streak-stats.demolab.com?user=EricksonAtHome&locale=en&mode=daily&theme=dark&hide_border=false&border_radius=5&order=3": "images/streak-stats.svg",
+              "https://github.com/EricksonAtHome/ericksonathome/blob/main/RPReplay_Final1682500748.gif?raw=true": "RPReplay_Final1682500748.gif",
+          }
+
+          for url, local in replacements.items():
+              content = content.replace(url, local)
+
+          # Wrap raw HTML from README in a full HTML page
+          html = f"""<!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>EricksonAtHome</title>
+            <style>
+              body {{ font-family: -apple-system, sans-serif; max-width: 800px; margin: auto; padding: 16px; background: #0d1117; color: #c9d1d9; }}
+              img {{ max-width: 100%; height: auto; }}
+              a {{ color: #58a6ff; }}
+              h1, h2, h3 {{ color: #e6edf3; }}
+            </style>
+          </head>
+          <body>
+          {content}
+          </body>
+          </html>"""
+
+          with open("README.html", "w") as f:
+              f.write(html)
+
+          print("README.html generated successfully.")
+          EOF
+
       - name: Create complete ZIP
         run: |
-          zip -r ericksonathome.zip . -x ".git/*"
+          zip -r ericksonathome.zip . -x ".git/*" -x "*.zip"
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
