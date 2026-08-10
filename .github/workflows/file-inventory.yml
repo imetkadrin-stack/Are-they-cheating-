@@ -1,7 +1,7 @@
 name: Archive File Inventory
 
-# This workflow creates a readable list of files in the repository
-# and uploads that list as an artifact.
+# This workflow creates a readable inventory report of repository files
+# and uploads it as an artifact.
 on:
   workflow_dispatch:
 
@@ -11,7 +11,7 @@ on:
 
 jobs:
   file_inventory:
-    name: Generate and upload file list
+    name: Generate and upload file inventory report
     runs-on: ubuntu-latest
 
     steps:
@@ -21,16 +21,62 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Create file list
+      - name: Build inventory report
+        shell: bash
         run: |
+          set -euo pipefail
+
+          REPORT="file-inventory-report.txt"
+          TMP_LIST="all-files.txt"
+
+          # Build a sorted list of repository files (excluding .git internals and common dependency folders)
           find . -type f \
             -not -path './.git/*' \
             -not -path './node_modules/*' \
-            | sort > file-list.txt
+            | sed 's|^\./||' \
+            | sort > "$TMP_LIST"
 
-      - name: Upload file list artifact
+          TOTAL_FILES=$(wc -l < "$TMP_LIST" | tr -d '[:space:]')
+
+          {
+            echo "Repository File Inventory"
+            echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%SZ')"
+            echo "Repository: imetkadrin-stack/ericksonathome"
+            echo ""
+            echo "=============================="
+            echo "SUMMARY"
+            echo "=============================="
+            echo "Total files: $TOTAL_FILES"
+            echo ""
+
+            echo "=============================="
+            echo "FILE EXTENSION BREAKDOWN"
+            echo "=============================="
+
+            awk -F/ '
+              {
+                file=$NF
+                n=split(file,a,".")
+                if (file ~ /^\./ && n==1) ext="[no-ext]"
+                else if (n>1) ext="." a[n]
+                else ext="[no-ext]"
+                count[ext]++
+              }
+              END {
+                for (e in count) printf "%7d  %s\n", count[e], e
+              }
+            ' "$TMP_LIST" | sort -nr
+
+            echo ""
+            echo "=============================="
+            echo "FILES (SORTED)"
+            echo "=============================="
+            cat "$TMP_LIST"
+          } > "$REPORT"
+
+      - name: Upload inventory report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ericksonathome-file-list
-          path: file-list.txt
+          name: ericksonathome-file-inventory-report
+          path: file-inventory-report.txt
           retention-days: 30
