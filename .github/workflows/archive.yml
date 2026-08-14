@@ -12,8 +12,12 @@ on:
 
 jobs:
   archive:
-    name: Build and upload repository archive
+    name: Build, upload, and publish repository archive
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -34,3 +38,52 @@ jobs:
           name: ericksonathome-complete
           path: ericksonathome.zip
           retention-days: 30
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare Pages archive site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p pages
+          cp ericksonathome.zip pages/ericksonathome.zip
+
+          cat <<'EOF' > pages/index.html
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Repository Archive</title>
+            </head>
+            <body>
+              <main>
+                <h1>Repository Archive</h1>
+                <p>Download the latest published archive for this repository:</p>
+                <p><a href="./ericksonathome.zip">ericksonathome.zip</a></p>
+              </main>
+            </body>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+  deploy_pages:
+    name: Deploy published archive
+    needs: archive
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

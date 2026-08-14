@@ -60,3 +60,9 @@
 </div>
 
 ###
+
+<h3 align="left">📦 Repository Archive</h3>
+
+###
+
+<p align="left">The archive workflow publishes the latest <code>ericksonathome.zip</code> to GitHub Pages in addition to the GitHub Actions artifact. After the workflow runs successfully, the stable download URL is <code>https://&lt;pages-host&gt;/ericksonathome.zip</code> from this repository's GitHub Pages site. If GitHub Pages has not been enabled for this repository yet, enable GitHub Pages with GitHub Actions as the source first.</p>
