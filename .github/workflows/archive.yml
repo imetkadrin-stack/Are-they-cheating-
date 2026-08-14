@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -39,9 +37,6 @@ jobs:
           path: ericksonathome.zip
           retention-days: 30
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
       - name: Prepare Pages archive site
         shell: bash
         run: |
@@ -50,23 +45,23 @@ jobs:
           mkdir -p pages
           cp ericksonathome.zip pages/ericksonathome.zip
 
-          cat <<'EOF' > pages/index.html
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Repository Archive</title>
-            </head>
-            <body>
-              <main>
-                <h1>Repository Archive</h1>
-                <p>Download the latest published archive for this repository:</p>
-                <p><a href="./ericksonathome.zip">ericksonathome.zip</a></p>
-              </main>
-            </body>
-          </html>
-          EOF
+          {
+            echo '<!doctype html>'
+            echo '<html lang="en">'
+            echo '  <head>'
+            echo '    <meta charset="utf-8">'
+            echo '    <meta name="viewport" content="width=device-width, initial-scale=1">'
+            echo '    <title>Repository Archive</title>'
+            echo '  </head>'
+            echo '  <body>'
+            echo '    <main>'
+            echo '      <h1>Repository Archive</h1>'
+            echo '      <p>Download the latest published archive for this repository:</p>'
+            echo '      <p><a href="./ericksonathome.zip">ericksonathome.zip</a></p>'
+            echo '    </main>'
+            echo '  </body>'
+            echo '</html>'
+          } > pages/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
