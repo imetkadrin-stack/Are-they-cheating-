@@ -60,3 +60,12 @@
 </div>
 
 ###
+
+<h3 align="left">🤖 Copilot CLI + Azure plugin setup</h3>
+
+```bash
+npm install -g @github/copilot && \
+copilot extension install github/github-copilot-cli && \
+copilot plugin marketplace add microsoft/github-copilot-for-azure && \
+copilot plugin install azure@github-copilot-for-azure
+```
