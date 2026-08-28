@@ -1,0 +1,143 @@
+name: Azure Deployment
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploys three components to Azure on every push to main:
+#   1. Azure Functions (api-functions/)
+#   2. Azure Container App worker (worker/)
+#   3. Web dashboard (web-dashboard/)
+#
+# Required GitHub Secrets (sensitive values):
+#   AZURE_CREDENTIALS           – JSON output of: az ad sp create-for-rbac ...
+#   AZURE_STATIC_WEB_APP_TOKEN  – deployment token for Static Web Apps
+#   NEXT_PUBLIC_FUNCTION_KEY    – (optional) Function App host key
+#
+# Required GitHub Variables (non-sensitive names, set via Settings → Variables):
+#   AZURE_RESOURCE_GROUP        – name of the target resource group
+#   AZURE_FUNCTION_APP_NAME     – name of the Azure Function App
+#   AZURE_CONTAINER_REGISTRY    – e.g. myregistry.azurecr.io
+#   AZURE_CONTAINER_APP_NAME    – name of the Container App
+#   NEXT_PUBLIC_API_URL         – URL of the deployed Function App API
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # required for OIDC login
+
+concurrency:
+  group: azure-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # 1. Deploy Azure Functions
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-functions:
+    name: Deploy Azure Functions
+    runs-on: ubuntu-latest
+    if: ${{ vars.AZURE_FUNCTION_APP_NAME != '' }}
+    defaults:
+      run:
+        working-directory: api-functions
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Functions
+        uses: azure/functions-action@v1
+        with:
+          app-name: ${{ vars.AZURE_FUNCTION_APP_NAME }}
+          package: api-functions
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 2. Build and deploy the Container App worker
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-worker:
+    name: Build & Deploy Worker Container
+    runs-on: ubuntu-latest
+    if: ${{ vars.AZURE_CONTAINER_REGISTRY != '' }}
+    defaults:
+      run:
+        working-directory: worker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name ${{ vars.AZURE_CONTAINER_REGISTRY }}
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE="${{ vars.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Update Container App revision
+        run: |
+          az containerapp update \
+            --name "${{ vars.AZURE_CONTAINER_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ vars.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 3. Build and deploy the web dashboard (Azure Static Web Apps)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-dashboard:
+    name: Deploy Web Dashboard
+    runs-on: ubuntu-latest
+    if: ${{ secrets.AZURE_STATIC_WEB_APP_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: web-dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web-dashboard/package.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline || npm install
+
+      - name: Build Next.js dashboard
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          # Function key intentionally read server-side via API route; not embedded here.
+        run: npm run build
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APP_TOKEN }}
+          action: "upload"
+          app_location: "web-dashboard"
+          output_location: "out"
+          skip_app_build: true

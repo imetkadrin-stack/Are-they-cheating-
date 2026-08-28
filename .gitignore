@@ -1,0 +1,18 @@
+# Azure Functions local secrets
+api-functions/local.settings.json
+
+# Node / Next.js
+web-dashboard/node_modules/
+web-dashboard/.next/
+web-dashboard/out/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
