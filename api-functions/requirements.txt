@@ -1,0 +1,3 @@
+azure-functions-core-tools
+azure-identity
+azure-storage-blob
