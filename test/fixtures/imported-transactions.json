@@ -1,0 +1,12 @@
+[
+  {"id":"t1","date":"2026-01-01","description":"Payroll Deposit","merchant":"Employer Inc","amount":2800},
+  {"id":"t2","date":"2026-01-03","description":"ALDI Grocery","merchant":"ALDI #12","amount":-64.2},
+  {"id":"t3","date":"2026-01-05","description":"Electric Utility Bill","merchant":"City Power","amount":-92.6},
+  {"id":"t4","date":"2026-01-07","description":"Metro Transit Card","merchant":"Metro Transit","amount":-30},
+  {"id":"t5","date":"2026-01-09","description":"Netflix Subscription","merchant":"Netflix","amount":-15.99},
+  {"id":"t6","date":"2026-02-01","description":"Payroll Deposit","merchant":"Employer Inc","amount":2800},
+  {"id":"t7","date":"2026-02-09","description":"Netflix Subscription","merchant":"Netflix","amount":-15.99},
+  {"id":"t8","date":"2026-03-01","description":"Payroll Deposit","merchant":"Employer Inc","amount":2800},
+  {"id":"t9","date":"2026-03-09","description":"Netflix Subscription","merchant":"Netflix","amount":-16.2},
+  {"id":"t10","date":"2026-03-11","description":"Internal Transfer to Savings","merchant":"Bank Transfer","amount":-200}
+]
