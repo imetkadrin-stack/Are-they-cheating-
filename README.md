@@ -60,3 +60,16 @@
 </div>
 
 ###
+
+
+## Safe finance analytics
+
+This repository includes safe personal-finance analytics modules based on imported or mocked transaction data only.
+
+- Transaction categorization
+- Budget limits and threshold alerts
+- Recurring payment detection
+- Cashflow summary model for dashboard integration
+- Structured finance audit logs
+
+See `./docs/SAFE_FINANCE_FEATURES.md` for usage and safety boundaries.

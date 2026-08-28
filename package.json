@@ -1,0 +1,9 @@
+{
+  "name": "ericksonathome",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Safe personal finance analytics utilities for imported transaction data.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
