@@ -59,13 +59,10 @@
   <img src="https://streak-stats.demolab.com?user=EricksonAtHome&locale=en&mode=daily&theme=dark&hide_border=false&border_radius=5&order=3" height="220" alt="streak graph"  />
 </div>
 
-###
-
-<h3 align="left">🤖 Copilot CLI + Azure plugin setup</h3>
+<h3 align="left">🤖 Copilot CLI setup</h3>
 
 ```bash
-npm install -g @github/copilot && \
-copilot extension install github/github-copilot-cli && \
-copilot plugin marketplace add microsoft/github-copilot-for-azure && \
-copilot plugin install azure@github-copilot-for-azure
+gh extension install github/gh-copilot
 ```
+
+<p align="left">For Azure-specific Copilot integrations, verify the latest plugin/extension commands in the official docs for your installed Copilot tooling version.</p>
