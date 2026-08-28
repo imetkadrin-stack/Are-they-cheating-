@@ -6,15 +6,17 @@ name: Azure Deployment
 #   2. Azure Container App worker (worker/)
 #   3. Web dashboard (web-dashboard/)
 #
-# Required GitHub Secrets:
+# Required GitHub Secrets (sensitive values):
 #   AZURE_CREDENTIALS           – JSON output of: az ad sp create-for-rbac ...
+#   AZURE_STATIC_WEB_APP_TOKEN  – deployment token for Static Web Apps
+#   NEXT_PUBLIC_FUNCTION_KEY    – (optional) Function App host key
+#
+# Required GitHub Variables (non-sensitive names, set via Settings → Variables):
 #   AZURE_RESOURCE_GROUP        – name of the target resource group
 #   AZURE_FUNCTION_APP_NAME     – name of the Azure Function App
 #   AZURE_CONTAINER_REGISTRY    – e.g. myregistry.azurecr.io
 #   AZURE_CONTAINER_APP_NAME    – name of the Container App
-#   AZURE_STATIC_WEB_APP_TOKEN  – deployment token for Static Web Apps
 #   NEXT_PUBLIC_API_URL         – URL of the deployed Function App API
-#   NEXT_PUBLIC_FUNCTION_KEY    – (optional) Function App host key
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -37,7 +39,7 @@ jobs:
   deploy-functions:
     name: Deploy Azure Functions
     runs-on: ubuntu-latest
-    if: ${{ vars.AZURE_FUNCTION_APP_NAME != '' || secrets.AZURE_FUNCTION_APP_NAME != '' }}
+    if: ${{ vars.AZURE_FUNCTION_APP_NAME != '' }}
     defaults:
       run:
         working-directory: api-functions
@@ -61,7 +63,7 @@ jobs:
       - name: Deploy to Azure Functions
         uses: azure/functions-action@v1
         with:
-          app-name: ${{ secrets.AZURE_FUNCTION_APP_NAME }}
+          app-name: ${{ vars.AZURE_FUNCTION_APP_NAME }}
           package: api-functions
           scm-do-build-during-deployment: true
           enable-oryx-build: true
@@ -72,7 +74,7 @@ jobs:
   deploy-worker:
     name: Build & Deploy Worker Container
     runs-on: ubuntu-latest
-    if: ${{ secrets.AZURE_CONTAINER_REGISTRY != '' }}
+    if: ${{ vars.AZURE_CONTAINER_REGISTRY != '' }}
     defaults:
       run:
         working-directory: worker
@@ -86,20 +88,20 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to Azure Container Registry
-        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+        run: az acr login --name ${{ vars.AZURE_CONTAINER_REGISTRY }}
 
       - name: Build and push Docker image
         run: |
-          IMAGE="${{ secrets.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
+          IMAGE="${{ vars.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Update Container App revision
         run: |
           az containerapp update \
-            --name "${{ secrets.AZURE_CONTAINER_APP_NAME }}" \
-            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-            --image "${{ secrets.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
+            --name "${{ vars.AZURE_CONTAINER_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ vars.AZURE_CONTAINER_REGISTRY }}/ericksonathome-worker:${{ github.sha }}"
 
   # ─────────────────────────────────────────────────────────────────────────
   # 3. Build and deploy the web dashboard (Azure Static Web Apps)
@@ -127,8 +129,8 @@ jobs:
 
       - name: Build Next.js dashboard
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_FUNCTION_KEY: ${{ secrets.NEXT_PUBLIC_FUNCTION_KEY }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          # Function key intentionally read server-side via API route; not embedded here.
         run: npm run build
 
       - name: Deploy to Azure Static Web Apps

@@ -4,12 +4,15 @@
 //
 // Provisions:
 //   - Storage Account (queues + blobs for job data)
+//   - Key Vault (secrets, including storage connection string)
 //   - Application Insights + Log Analytics workspace
 //   - Azure Function App (Consumption plan, Python 3.11)
-//   - Azure Container Registry
+//   - Azure Container Registry (stable GA API)
 //   - Container App Environment + Container App (worker)
-//   - Key Vault (for secrets)
 //   - Static Web App (dashboard)
+//
+// Connection strings are stored in Key Vault; app settings reference them
+// via Key Vault references rather than embedding plain-text secrets.
 //
 // Deploy with:
 //   az deployment group create \
@@ -58,6 +61,33 @@ resource resultsContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
   }
 }
 
+// ── Key Vault ────────────────────────────────────────────────────────────────
+// Provisioned early so that the Function App and Container App can reference
+// its secrets via Key Vault references rather than embedding credentials.
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
+  name: '${appName}-${environment}-kv'
+  location: location
+  tags: tags
+  properties: {
+    sku: { family: 'A', name: 'standard' }
+    tenantId: subscription().tenantId
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 7
+    enableRbacAuthorization: true
+  }
+}
+
+// Store the storage connection string as a Key Vault secret.
+var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+
+resource storageConnSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'storage-connection-string'
+  properties: {
+    value: storageConnectionString
+  }
+}
+
 // ── Log Analytics + Application Insights ────────────────────────────────────
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: '${appName}-${environment}-logs'
@@ -100,6 +130,9 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   location: location
   tags: tags
   kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: functionPlan.id
     siteConfig: {
@@ -108,7 +141,9 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       appSettings: [
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'python' }
-        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
+        // Reference storage connection string from Key Vault
+        { name: 'AzureWebJobsStorage', value: '@Microsoft.KeyVault(SecretUri=${storageConnSecret.properties.secretUri})' }
+        { name: 'AZURE_STORAGE_CONNECTION_STRING', value: '@Microsoft.KeyVault(SecretUri=${storageConnSecret.properties.secretUri})' }
         { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: appInsights.properties.InstrumentationKey }
         { name: 'JOB_QUEUE_NAME', value: 'jobs' }
         { name: 'RESULTS_CONTAINER_NAME', value: 'results' }
@@ -117,11 +152,24 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       minTlsVersion: '1.2'
     }
     httpsOnly: true
+    keyVaultReferenceIdentity: 'SystemAssigned'
   }
 }
 
-// ── Azure Container Registry ─────────────────────────────────────────────────
-resource registry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
+// Grant the Function App "Key Vault Secrets User" so it can read Key Vault references.
+var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+resource funcKvRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, functionApp.id, kvSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ── Azure Container Registry (stable GA API) ─────────────────────────────────
+resource registry 'Microsoft.ContainerRegistry/registries@2023-01-01' = {
   name: '${replace(appName, '-', '')}${environment}acr'
   location: location
   tags: tags
@@ -148,10 +196,15 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
 }
 
 // ── Container App (worker) ───────────────────────────────────────────────────
+// The connection string is stored as a Container App secret (fetched from Key Vault
+// at deploy time) so it is not embedded as a plain-text environment variable.
 resource workerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${appName}-${environment}-worker'
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -159,6 +212,13 @@ resource workerApp 'Microsoft.App/containerApps@2023-05-01' = {
       registries: [
         {
           server: registry.properties.loginServer
+          identity: 'system'
+        }
+      ]
+      secrets: [
+        {
+          name: 'storage-connection-string'
+          keyVaultUrl: storageConnSecret.properties.secretUri
           identity: 'system'
         }
       ]
@@ -173,7 +233,7 @@ resource workerApp 'Microsoft.App/containerApps@2023-05-01' = {
             memory: '1Gi'
           }
           env: [
-            { name: 'AZURE_STORAGE_CONNECTION_STRING', value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
+            { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'storage-connection-string' }
             { name: 'JOB_QUEUE_NAME', value: 'jobs' }
             { name: 'RESULTS_CONTAINER_NAME', value: 'results' }
             { name: 'POLL_INTERVAL_SECONDS', value: '10' }
@@ -186,22 +246,16 @@ resource workerApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
     }
   }
-  identity: {
-    type: 'SystemAssigned'
-  }
 }
 
-// ── Key Vault ────────────────────────────────────────────────────────────────
-resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
-  name: '${appName}-${environment}-kv'
-  location: location
-  tags: tags
+// Grant the Container App "Key Vault Secrets User" to read its secret.
+resource workerKvRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, workerApp.id, kvSecretsUserRoleId)
+  scope: keyVault
   properties: {
-    sku: { family: 'A', name: 'standard' }
-    tenantId: subscription().tenantId
-    enableSoftDelete: true
-    softDeleteRetentionInDays: 7
-    enableRbacAuthorization: true
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
+    principalId: workerApp.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 

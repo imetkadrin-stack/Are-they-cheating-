@@ -72,16 +72,29 @@ Copy the JSON output into a GitHub secret named **`AZURE_CREDENTIALS`**.
 
 ### 3. Set GitHub Secrets
 
+**GitHub Secrets** (sensitive values – Settings → Secrets and variables → Actions → Secrets):
+
 | Secret name | Value |
 |-------------|-------|
 | `AZURE_CREDENTIALS` | JSON output from step 2 |
+| `AZURE_STATIC_WEB_APP_TOKEN` | From Azure Portal → Static Web App → Manage deployment token |
+
+**GitHub Variables** (non-sensitive names – Settings → Secrets and variables → Actions → Variables):
+
+| Variable name | Value |
+|---------------|-------|
 | `AZURE_RESOURCE_GROUP` | `ericksonathome-dev-rg` |
 | `AZURE_FUNCTION_APP_NAME` | Function App name from Bicep output |
 | `AZURE_CONTAINER_REGISTRY` | Container Registry server (e.g. `ericksonathomedevacr.azurecr.io`) |
 | `AZURE_CONTAINER_APP_NAME` | Container App name |
-| `AZURE_STATIC_WEB_APP_TOKEN` | From Azure Portal → Static Web App → Manage deployment token |
 | `NEXT_PUBLIC_API_URL` | Function App URL (e.g. `https://ericksonathome-dev-func.azurewebsites.net/api`) |
-| `NEXT_PUBLIC_FUNCTION_KEY` | (Optional) Function App host key for securing endpoints |
+
+**Dashboard server-side environment variables** (set in the Static Web App / App Service configuration):
+
+| Variable name | Value |
+|---------------|-------|
+| `FUNCTION_APP_URL` | Base URL of the Function App API (server-only, never exposed to browser) |
+| `FUNCTION_KEY` | Azure Function host key (server-only, never exposed to browser) |
 
 ### 4. Push to main
 

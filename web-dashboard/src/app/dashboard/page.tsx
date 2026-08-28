@@ -4,18 +4,16 @@ import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Dashboard page – displays job controls, status, and latest logs.
-// Replace the hard-coded API_BASE_URL with the Azure Function App URL once
-// deployed, or expose it as an environment variable (NEXT_PUBLIC_API_URL).
+//
+// All API calls go through the Next.js server-side proxy at /api/proxy/...
+// which injects the Azure Function host key from the server environment.
+// The key is never exposed to the browser.
 // ---------------------------------------------------------------------------
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
-const FUNCTION_KEY = process.env.NEXT_PUBLIC_FUNCTION_KEY ?? "";
 
 type Job = {
   job_id: string;
   status: string;
   submitted_at?: string;
-  completed_at?: string;
   output?: string;
 };
 
@@ -30,18 +28,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(FUNCTION_KEY ? { "x-functions-key": FUNCTION_KEY } : {}),
-  };
-
   async function runJob() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/jobs/run`, {
+      const res = await fetch("/api/proxy/jobs/run", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ triggered_from: "dashboard" }),
       });
       const data: Job = await res.json();
@@ -57,7 +50,7 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/logs/latest`, { headers });
+      const res = await fetch("/api/proxy/logs/latest");
       const data = await res.json();
       setLogs(data.logs ?? []);
     } catch (e) {
@@ -69,7 +62,7 @@ export default function DashboardPage() {
 
   async function checkStatus(job_id: string) {
     try {
-      const res = await fetch(`${API_BASE_URL}/jobs/status/${job_id}`, { headers });
+      const res = await fetch(`/api/proxy/jobs/status/${job_id}`);
       const updated: Job = await res.json();
       setJobs((prev) => prev.map((j) => (j.job_id === job_id ? { ...j, ...updated } : j)));
     } catch (e) {
@@ -94,18 +87,10 @@ export default function DashboardPage() {
       <section style={{ marginBottom: "2rem" }}>
         <h2 style={{ color: "#7dd3fc" }}>Job Controls</h2>
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-          <button
-            onClick={runJob}
-            disabled={loading}
-            style={btnStyle("#0ea5e9")}
-          >
+          <button onClick={runJob} disabled={loading} style={btnStyle("#0ea5e9")}>
             ▶ Run Job
           </button>
-          <button
-            onClick={fetchLogs}
-            disabled={loading}
-            style={btnStyle("#6366f1")}
-          >
+          <button onClick={fetchLogs} disabled={loading} style={btnStyle("#6366f1")}>
             📋 Fetch Latest Logs
           </button>
         </div>
@@ -166,8 +151,7 @@ function StatusBadge({ status }: { status: string }) {
     failed: "#f87171",
     unknown: "#94a3b8",
   };
-  const color = colors[status] ?? "#94a3b8";
-  return <span style={{ color, fontWeight: 600 }}>{status}</span>;
+  return <span style={{ color: colors[status] ?? "#94a3b8", fontWeight: 600 }}>{status}</span>;
 }
 
 function btnStyle(bg: string, small = false) {
