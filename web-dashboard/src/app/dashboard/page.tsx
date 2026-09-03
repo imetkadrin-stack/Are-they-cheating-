@@ -22,9 +22,17 @@ type LogEntry = {
   message: string;
 };
 
+type PhoneActivityEntry = {
+  timestamp: string;
+  app_name?: string;
+  event?: string;
+  description?: string;
+};
+
 export default function DashboardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [phoneActivity, setPhoneActivity] = useState<PhoneActivityEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +61,20 @@ export default function DashboardPage() {
       const res = await fetch("/api/proxy/logs/latest");
       const data = await res.json();
       setLogs(data.logs ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchPhoneActivity() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/proxy/phone-activity/latest");
+      const data = await res.json();
+      setPhoneActivity(data.activity ?? []);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -92,6 +114,9 @@ export default function DashboardPage() {
           </button>
           <button onClick={fetchLogs} disabled={loading} style={btnStyle("#6366f1")}>
             📋 Fetch Latest Logs
+          </button>
+          <button onClick={fetchPhoneActivity} disabled={loading} style={btnStyle("#ec4899")}>
+            📱 Fetch Phone Activity
           </button>
         </div>
       </section>
@@ -137,6 +162,34 @@ export default function DashboardPage() {
           <pre style={{ background: "#1e293b", padding: "1rem", borderRadius: 6, overflowX: "auto", fontSize: "0.8rem" }}>
             {logs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n")}
           </pre>
+        )}
+      </section>
+
+      {/* Phone Activity */}
+      <section style={{ marginTop: "2rem" }}>
+        <h2 style={{ color: "#7dd3fc" }}>Phone Activity</h2>
+        {phoneActivity.length === 0 ? (
+          <p style={{ color: "#64748b" }}>No phone activity fetched yet.</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <thead>
+              <tr>
+                {["Timestamp", "App", "Event", "Description"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {phoneActivity.map((a, idx) => (
+                <tr key={`${a.timestamp}-${idx}`}>
+                  <td style={tdStyle}>{a.timestamp}</td>
+                  <td style={tdStyle}>{a.app_name ?? "—"}</td>
+                  <td style={tdStyle}>{a.event ?? "—"}</td>
+                  <td style={tdStyle}>{a.description ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </main>
