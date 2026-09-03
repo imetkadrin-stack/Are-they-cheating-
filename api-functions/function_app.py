@@ -90,3 +90,26 @@ def logs_latest(req: func.HttpRequest) -> func.HttpResponse:
         status_code=200,
         mimetype="application/json",
     )
+
+
+@app.route(route="phone-activity/latest", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
+def phone_activity_latest(req: func.HttpRequest) -> func.HttpResponse:
+    """Return the most recent phone activity entries."""
+    logging.info("phone-activity/latest called")
+
+    # TODO: read phone activity entries from Azure Blob Storage or Table Storage.
+    # Example with cloning:
+    # activity = fetch_phone_activity_from_storage()
+    # cloned_activity = [deep_clone(entry) for entry in activity]
+    # return cloned_activity to avoid external mutation
+
+    result = {
+        "activity": [],
+        "message": "Phone activity retrieval not yet implemented. Connect to Azure Blob/Table Storage.",
+    }
+
+    return func.HttpResponse(
+        json.dumps(result),
+        status_code=200,
+        mimetype="application/json",
+    )
